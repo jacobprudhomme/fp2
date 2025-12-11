@@ -214,4 +214,32 @@ mod tests {
             assert!(!Fp1554::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
         }
     }
+
+    mod fp648_tests {
+        static MODULUS: [u64; 11] = [
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xAB4C1EC4E9A4421A,
+            0xA1A751E0FF03064A,
+            0x5C5381A82432B77B,
+            0x74F54CC513A36773,
+            0x152EF0C01F75CCD4,
+            0xA53054622A07450C,
+            0xF81DCB46FD3F8B4D,
+            0x00000000000000DA,
+        ];
+
+        // Fp648: a finite field element GF(p) with p = 3 mod 4.
+        // Contents are opaque, all functions are constant-time.
+        fp2::define_fp_core!(typename = Fp648, modulus = MODULUS,);
+
+        // Fp648Ext: a finite field element GF(p^2) with modulus x^2 + 1.
+        // Contents are opaque, all functions are constant-time.
+        fp2::define_fp2_from_type!(typename = Fp648Ext, base_field = Fp648,);
+
+
+        fp2::define_fp_tests!(Fp648);
+        fp2::define_fp2_tests!(Fp648Ext, MODULUS, 6);
+    }
 }

@@ -6,6 +6,7 @@ from sage.all import GF, proof, ceil
 
 proof.all(False)
 
+
 def fmt_little_u64(res, words):
     out = []
     for r in res:
@@ -18,12 +19,14 @@ def fmt_little_u64(res, words):
         out.append("0x" + "0" * 16)
     return out
 
+
 def fmt_list(l):
     l = str(l)
     l = l.replace("[", "")
     l = l.replace("]", "")
     l = l.replace("'", "")
     return l
+
 
 def to_little_u64(n, words):
 
@@ -37,14 +40,15 @@ def to_little_u64(n, words):
 
 
 if __name__ == "__main__":
-    p = 65 * 2**376 - 1
+    # p = 65 * 2**376 - 1
+    p = 2**192 * 3**243 * 5**28 * 7**2 - 1
     assert p.is_prime()
     assert p % 4 == 3
     words = ceil(p.nbits() / 64)
     BITLEN = p.nbits()
     MODULUS = to_little_u64(p, words)
 
-    Fp2 = GF(p**2, names="i", modulus=[1,0,1])
+    Fp2 = GF(p**2, names="i", modulus=[1, 0, 1])
     nqr = 1
     for i in range(1, 1000):
         x = Fp2([i, 1])
