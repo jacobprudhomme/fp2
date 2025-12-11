@@ -57,25 +57,22 @@ if __name__ == "__main__":
             break
 
     output = f"""
-mod fp{BITLEN} {{
-    // Macro input generated with scripts/gen_fp.sage
-
+mod fp{BITLEN}_tests {{
     // Field modulus
-    const MODULUS: [u64; {words}] = [{MODULUS}];
+    static MODULUS: [u64; {words}] = [{MODULUS}];
 
-    fp2_rs::define_fp_core!(
+    fp2::define_fp_core!(
         typename = Fp{BITLEN},
         modulus = MODULUS,
     );
 
-    fp2_rs::define_fp2_from_modulus!(
+    fp2::define_fp2_from_type!(
         typename = Fp{BITLEN}Ext,
-        base_typename = Fp{BITLEN},
-        modulus = MODULUS,
+        base_field = Fp{BITLEN},
     );
 
-    fp2_rs::define_fp_tests!(Fp{BITLEN});
-    fp2_rs::define_fp2_tests!(Fp{BITLEN}Ext, {nqr});
+    fp2::define_fp_tests!(Fp{BITLEN});
+    fp2::define_fp2_tests!(Fp{BITLEN}Ext, MODULUS, {nqr});
 }}
     """
 
