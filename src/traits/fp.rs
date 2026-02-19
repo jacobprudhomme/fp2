@@ -141,11 +141,11 @@ pub trait Fp:
     /// MUST be at most `ebitlen`. This is constant-time for both the
     /// base value (`self`) and the exponent (`e`); the exponent maximum
     /// size (`ebitlen`) is considered non-secret.
-    fn pow_u64(&mut self, e: u64, ebitlen: usize) -> Self;
+    fn pow_u64(&self, e: u64, ebitlen: usize) -> Self;
 
     /// Return this value to the power e. The exponent is considered
     /// non-secret.
-    fn pow_u64_vartime(&mut self, e: u64) -> Self;
+    fn pow_u64_vartime(&self, e: u64) -> Self;
 
     /// Set this value to its square root. Returned value is `0xFFFFFFFF` if
     /// the operation succeeded (value was indeed a quadratic residue), or

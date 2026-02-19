@@ -1457,10 +1457,10 @@ macro_rules! define_fp2_from_type {
             fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
                 self.pow_ext(e, eoff, ebitlen)
             }
-            fn pow_u64(&mut self, e: u64, ebitlen: usize) -> Self {
+            fn pow_u64(&self, e: u64, ebitlen: usize) -> Self {
                 self.pow_u64(e, ebitlen)
             }
-            fn pow_u64_vartime(&mut self, e: u64) -> Self {
+            fn pow_u64_vartime(&self, e: u64) -> Self {
                 self.pow_u64_vartime(e)
             }
 
