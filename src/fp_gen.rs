@@ -40,6 +40,15 @@ macro_rules! define_fp_core {
         #[derive(Clone, Copy, Debug)]
         pub struct $typename([u64; $typename::N]);
 
+        // For very large moduli (such as 4000+ bits) some of the const functions can
+        // take a long time. This is solved in two ways.
+        //
+        // 1. Allow the user to obtain R, R2, TDEC etc as macro parameters
+        // 2. Be patient
+        //
+        // I have gone with option two as it makes the macro input cleaner and most
+        // of the time smaller moduli are used and the compile time is not an issue. 
+        #[allow(long_running_const_eval)]
         impl $typename {
             // IMPLEMENTATION NOTES
             // --------------------
@@ -1735,34 +1744,30 @@ macro_rules! define_fp_core {
 
             // Add the modulus, return borrow (compile-time).
             const fn addm(a: Self) -> (Self, u64) {
-                const fn addm_inner(a: $typename, cc: u64, i: usize) -> ($typename, u64) {
-                    if i == a.0.len() {
-                        (a, cc)
-                    } else {
-                        let (d, cc) = $typename::adc(a.0[i], $typename::MODULUS[i], cc);
-                        let mut aa = a;
-                        aa.0[i] = d;
-                        addm_inner(aa, cc, i + 1)
-                    }
+                let mut r = a;
+                let mut cc = 0u64;
+                let mut i = 0;
+                while i < Self::N {
+                    let (d, c) = Self::adc(r.0[i], Self::MODULUS[i], cc);
+                    r.0[i] = d;
+                    cc = c;
+                    i += 1;
                 }
-
-                addm_inner(a, 0, 0)
+                (r, cc)
             }
 
             // Subtract the modulus, return borrow (compile-time).
             const fn subm(a: Self) -> (Self, u64) {
-                const fn subm_inner(a: $typename, cc: u64, i: usize) -> ($typename, u64) {
-                    if i == a.0.len() {
-                        (a, cc)
-                    } else {
-                        let (d, cc) = $typename::sbb(a.0[i], $typename::MODULUS[i], cc);
-                        let mut aa = a;
-                        aa.0[i] = d;
-                        subm_inner(aa, cc, i + 1)
-                    }
+                let mut r = a;
+                let mut cc = 0u64;
+                let mut i = 0;
+                while i < Self::N {
+                    let (d, c) = Self::sbb(r.0[i], Self::MODULUS[i], cc);
+                    r.0[i] = d;
+                    cc = c;
+                    i += 1;
                 }
-
-                subm_inner(a, 0, 0)
+                (r, cc)
             }
 
             // For the result of sum of products to work, we need 2*p - 4 to fit into
@@ -1796,19 +1801,17 @@ macro_rules! define_fp_core {
 
             // Add the modulus if mm == -1; return a unchanged with mm == 0
             // (compile-time).
-            const fn addm_cond(a: $typename, mm: u64) -> $typename {
-                const fn addm_cond_inner(a: $typename, mm: u64, cc: u64, i: usize) -> $typename {
-                    if i == a.0.len() {
-                        a
-                    } else {
-                        let (d, cc) = $typename::adc(a.0[i], $typename::MODULUS[i] & mm, cc);
-                        let mut aa = a;
-                        aa.0[i] = d;
-                        addm_cond_inner(aa, mm, cc, i + 1)
-                    }
+            const fn addm_cond(a: Self, mm: u64) -> Self {
+                let mut r = a;
+                let mut cc = 0u64;
+                let mut i = 0;
+                while i < Self::N {
+                    let (d, c) = Self::adc(r.0[i], Self::MODULUS[i] & mm, cc);
+                    r.0[i] = d;
+                    cc = c;
+                    i += 1;
                 }
-
-                addm_cond_inner(a, mm, 0, 0)
+                r
             }
 
             // Get index of the top non-zero word of the modulus
@@ -1822,23 +1825,6 @@ macro_rules! define_fp_core {
                     }
                 }
                 top_word_index_inner($modulus.len() - 1)
-            }
-
-            // Get the modulus (normalized).
-            const fn make_modulus() -> [u64; Self::N] {
-                const fn make_modulus_inner(
-                    d: [u64; $typename::N],
-                    j: usize,
-                ) -> [u64; $typename::N] {
-                    if j == $typename::N {
-                        d
-                    } else {
-                        let mut dd = d;
-                        dd[j] = $modulus[j];
-                        make_modulus_inner(dd, j + 1)
-                    }
-                }
-                make_modulus_inner([0u64; Self::N], 0)
             }
 
             // Compute the modulus exact bit length (compile-time).
@@ -1878,69 +1864,66 @@ macro_rules! define_fp_core {
                 }
             }
 
-            // Compute 2^n in the field, using repeated additions. This is
-            // used only at compile-time.
+            // Compute 2^n mod p as a plain integer (not in Montgomery form).
             const fn pow2mod(n: usize) -> Self {
-                const fn lsh_inner(d: $typename, cc: u64, i: usize) -> ($typename, u64) {
-                    if i == $typename::N {
-                        (d, cc)
-                    } else {
-                        let mut dd = d;
-                        dd.0[i] = (d.0[i] << 1) | cc;
-                        let cc = d.0[i] >> 63;
-                        lsh_inner(dd, cc, i + 1)
+                // One modular doubling: (2*a) mod p, returned as a plain integer.
+                const fn double1(a: $typename) -> $typename {
+                    // Left-shift the limb array by one bit.
+                    let mut r = a;
+                    let mut carry = 0u64;
+                    let mut i = 0;
+                    while i < $typename::N {
+                        let w = r.0[i];
+                        r.0[i] = (w << 1) | carry;
+                        carry = w >> 63;
+                        i += 1;
                     }
-                }
+                    let dh = carry; // top bit shifted out of the most-significant limb
 
-                const fn pow2mod_inner(d: $typename, n: usize) -> $typename {
-                    if n == 0 {
-                        d
-                    } else {
-                        let (d, dh) = lsh_inner(d, 0, 0);
-                        let (d, cc) = $typename::subm(d);
-                        let d = $typename::addm_cond(d, (cc & !dh).wrapping_neg());
-                        pow2mod_inner(d, n - 1)
-                    }
-                }
+                    // Subtract the modulus (may underflow).
+                    let (r2, cc) = $typename::subm(r);
 
-                const fn pow2mod_inner2(d: $typename, n: usize) -> $typename {
-                    if n <= 25 {
-                        pow2mod_inner(d, n)
-                    } else {
-                        pow2mod_inner2(pow2mod_inner(d, 25), n - 25)
-                    }
+                    // Add the modulus back if the subtraction underflowed and dh == 0.
+                    $typename::addm_cond(r2, (cc & !dh).wrapping_neg())
                 }
 
                 let bl = Self::mod_bitlen();
-                let mut d = Self([0u64; Self::N]);
+
+                // Fast path: 2^n < p, so it is already fully reduced.
                 if n < bl {
+                    let mut d = Self([0u64; Self::N]);
                     d.0[n >> 6] = 1u64 << (n & 63);
-                    d
-                } else {
-                    d.0[(bl - 1) >> 6] = 1u64 << ((bl - 1) & 63);
-                    pow2mod_inner2(d, n - (bl - 1))
+                    return d;
                 }
+
+                // Start from 2^(bl-1) — fits in one limb, no reduction needed.
+                let mut d = Self([0u64; Self::N]);
+                d.0[(bl - 1) >> 6] = 1u64 << ((bl - 1) & 63);
+
+                // Apply the remaining doublings one at a time.
+                // Maximum iterations: for R2 of a 4096-bit field ≈ 4097.
+                let mut remaining = n - (bl - 1);
+                while remaining > 0 {
+                    d = double1(d);
+                    remaining -= 1;
+                }
+
+                d
             }
 
             // Const implementation of modular negation. This MUST NOT be
             // applied on zero.
             const fn const_neg(a: Self) -> Self {
-                const fn const_neg_inner(
-                    d: $typename,
-                    a: $typename,
-                    cc: u64,
-                    j: usize,
-                ) -> $typename {
-                    if j == $typename::N {
-                        d
-                    } else {
-                        let mut dd = d;
-                        let (x, cc) = $typename::sbb($typename::MODULUS[j], a.0[j], cc);
-                        dd.0[j] = x;
-                        const_neg_inner(dd, a, cc, j + 1)
-                    }
+                let mut r = Self([0u64; Self::N]);
+                let mut cc = 0u64;
+                let mut j = 0;
+                while j < Self::N {
+                    let (x, c) = Self::sbb(Self::MODULUS[j], a.0[j], cc);
+                    r.0[j] = x;
+                    cc = c;
+                    j += 1;
                 }
-                const_neg_inner(Self::ZERO, a, 0, 0)
+                r
             }
 
             // Const implementation of Montgomery multiplication. It uses
@@ -1949,80 +1932,55 @@ macro_rules! define_fp_core {
             // implementation, but still constant-time (in case it gets
             // mistakenly used).
             const fn const_mmul(a: Self, b: Self) -> Self {
-                const fn umaal(x: u64, y: u64, a: u64, b: u64) -> (u64, u64) {
-                    let z = (x as u128) * (y as u128) + (a as u128) + (b as u128);
+                // 128-bit fused multiply-accumulate: x*y + acc + carry → (lo, hi).
+                const fn umaal(x: u64, y: u64, acc: u64, carry: u64) -> (u64, u64) {
+                    let z = (x as u128) * (y as u128) + (acc as u128) + (carry as u128);
                     (z as u64, (z >> 64) as u64)
                 }
 
-                const fn mmul1(d: $typename, dh: u64, a: $typename, bj: u64) -> ($typename, u64) {
-                    #[allow(clippy::too_many_arguments)]
-                    const fn mmul1_inner(
-                        d: $typename,
-                        dh: u64,
-                        a: $typename,
-                        bj: u64,
-                        fm: u64,
-                        cc1: u64,
-                        cc2: u64,
-                        i: usize,
-                    ) -> ($typename, u64) {
-                        if i == d.0.len() {
-                            let mut dd = d;
-                            let (z, zh1) = $typename::adc(dh, cc1, 0);
-                            let (z, zh2) = $typename::adc(z, cc2, 0);
-                            dd.0[i - 1] = z;
-                            (dd, zh1 + zh2)
-                        } else {
-                            let (z, cc1) = umaal(a.0[i], bj, d.0[i], cc1);
-                            let (z, cc2) = umaal($typename::MODULUS[i], fm, z, cc2);
-                            let mut dd = d;
-                            if i > 0 {
-                                dd.0[i - 1] = z;
-                            }
-                            mmul1_inner(dd, dh, a, bj, fm, cc1, cc2, i + 1)
-                        }
-                    }
+                let mut d = Self([0u64; Self::N]);
+                let mut dh: u64 = 0;
 
+                // Outer loop — one Montgomery reduction step per limb of b.
+                let mut j = 0;
+                while j < Self::N {
+                    let bj = b.0[j];
+                    // Montgomery factor for this step.
                     let fm = a.0[0]
                         .wrapping_mul(bj)
                         .wrapping_add(d.0[0])
-                        .wrapping_mul($typename::P0I);
-                    mmul1_inner(d, dh, a, bj, fm, 0, 0, 0)
-                }
+                        .wrapping_mul(Self::P0I);
 
-                const fn mmul_inner(
-                    d: $typename,
-                    dh: u64,
-                    a: $typename,
-                    b: $typename,
-                    j: usize,
-                ) -> ($typename, u64) {
-                    if j == d.0.len() {
-                        (d, dh)
-                    } else {
-                        let (d, dh) = mmul1(d, dh, a, b.0[j]);
-                        mmul_inner(d, dh, a, b, j + 1)
+                    let mut cc1 = 0u64; // carry from a[i]*bj column
+                    let mut cc2 = 0u64; // carry from MODULUS[i]*fm column
+
+                    // Inner loop — accumulate a[i]*bj and reduce with fm*MODULUS[i].
+                    // The word at i=0 is consumed by the reduction and not stored;
+                    // for i>0 each result shifts into d[i-1].
+                    let mut i = 0;
+                    while i < Self::N {
+                        let (z, c1) = umaal(a.0[i], bj, d.0[i], cc1);
+                        let (z, c2) = umaal(Self::MODULUS[i], fm, z, cc2);
+                        if i > 0 {
+                            d.0[i - 1] = z;
+                        }
+                        cc1 = c1;
+                        cc2 = c2;
+                        i += 1;
                     }
+
+                    // Fold the two high-word carries into d[N-1] and dh.
+                    let (z, zh1) = Self::adc(dh, cc1, 0);
+                    let (z, zh2) = Self::adc(z, cc2, 0);
+                    d.0[Self::N - 1] = z;
+                    dh = zh1 + zh2;
+
+                    j += 1;
                 }
 
-                let (d, dh) = mmul_inner(Self([0u64; $typename::N]), 0, a, b, 0);
-                let (d, cc) = $typename::subm(d);
-                $typename::addm_cond(d, (cc & !dh).wrapping_neg())
-            }
-
-            const fn const_rev(x: [u64; Self::N]) -> [u64; Self::N] {
-                const fn const_rev_inner(x: [u64; $typename::N], i: usize) -> [u64; $typename::N] {
-                    let j = $typename::N - 1 - i;
-                    if j <= i {
-                        x
-                    } else {
-                        let mut y = x;
-                        y[i] = x[j];
-                        y[j] = x[i];
-                        const_rev_inner(y, i + 1)
-                    }
-                }
-                const_rev_inner(x, 0)
+                // Final conditional subtraction (identical logic to original).
+                let (d2, cc) = Self::subm(d);
+                Self::addm_cond(d2, (cc & !dh).wrapping_neg())
             }
 
             const fn const_small(x: u64) -> Self {
@@ -2032,49 +1990,39 @@ macro_rules! define_fp_core {
             }
 
             const fn const_sqrt_exp() -> [u64; Self::N] {
-                const fn const_sqrt_exp_inner(
-                    d: [u64; $typename::N],
-                    cc: u64,
-                    dd: u64,
-                    i: usize,
-                ) -> [u64; $typename::N] {
-                    if i == $typename::N {
-                        let mut d2 = d;
-                        d2[$typename::N - 1] = dd;
-                        d2
-                    } else {
-                        let (x, cc) = $typename::adc($typename::MODULUS[i], 0, cc);
-                        let mut d2 = d;
-                        if i > 0 {
-                            d2[i - 1] = dd | (x << 62);
-                        }
-                        const_sqrt_exp_inner(d2, cc, x >> 2, i + 1)
+                let mut d = [0u64; Self::N];
+                let mut dd = 0u64;
+                let mut cc = 1u64;  // start with carry=1 to compute (p+1)/4
+                let mut i = 0;
+                while i < Self::N {
+                    let (x, c) = Self::adc(Self::MODULUS[i], 0, cc);
+                    cc = c;
+                    if i > 0 {
+                        d[i - 1] = dd | (x << 62);
                     }
+                    dd = x >> 2;
+                    i += 1;
                 }
-                const_sqrt_exp_inner([0u64; Self::N], 1, 0, 0)
+                d[Self::N - 1] = dd;
+                d
             }
 
             const fn const_fourth_root_exp() -> [u64; Self::N] {
-                const fn const_fourth_root_exp_inner(
-                    d: [u64; $typename::N],
-                    cc: u64,
-                    dd: u64,
-                    i: usize,
-                ) -> [u64; $typename::N] {
-                    if i == $typename::N {
-                        let mut d2 = d;
-                        d2[$typename::N - 1] = dd;
-                        d2
-                    } else {
-                        let (x, cc) = $typename::adc($typename::MODULUS[i], 0, cc);
-                        let mut d2 = d;
-                        if i > 0 {
-                            d2[i - 1] = dd | (x << 61);
-                        }
-                        const_fourth_root_exp_inner(d2, cc, x >> 3, i + 1)
+                let mut d = [0u64; Self::N];
+                let mut dd = 0u64;
+                let mut cc = 1u64;
+                let mut i = 0;
+                while i < Self::N {
+                    let (x, c) = Self::adc(Self::MODULUS[i], 0, cc);
+                    cc = c;
+                    if i > 0 {
+                        d[i - 1] = dd | (x << 61);
                     }
+                    dd = x >> 3;
+                    i += 1;
                 }
-                const_fourth_root_exp_inner([0u64; Self::N], 1, 0, 0)
+                d[Self::N - 1] = dd;
+                d
             }
 
             /// Decode an element from bytes, no check is made that the input
