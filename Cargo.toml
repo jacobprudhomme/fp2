@@ -12,8 +12,8 @@ repository = "https://github.com/GiacomoPope/fp2/"
 readme = "README.md"
 
 [features]
-default = ["test_macros"]
-test_macros = []
+default = ["test-utils"]
+test-utils = []
 
 [dependencies]
 rand_core = "0.9"
