@@ -69,7 +69,8 @@ macro_rules! define_fp_tests {
             // Zero bytes must decode to the zero element and re-encode to zero bytes.
             let zero = <$Fp>::decode_reduce(&fp_zero_vector());
             assert_eq!(
-                zero.is_zero(), u32::MAX,
+                zero.is_zero(),
+                u32::MAX,
                 "decode_reduce(0) should give the zero element"
             );
             let zc = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &zero.encode());
@@ -775,10 +776,7 @@ macro_rules! define_fp_tests {
 
                 // fourth_root(a^4) must succeed and satisfy (root)^4 == a^4 mod p.
                 let (c, r) = (a * a * a * a).fourth_root();
-                assert_eq!(
-                    r, u32::MAX,
-                    "iter {i}: fourth_root of fourth-power failed"
-                );
+                assert_eq!(r, u32::MAX, "iter {i}: fourth_root of fourth-power failed");
                 let zc = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &c.encode());
                 assert_eq!(
                     (&zc * &zc * &zc * &zc) % &zp,
@@ -902,7 +900,8 @@ macro_rules! define_fp2_tests {
             // Zero bytes must decode to the zero element.
             let zero = <$Fp2>::decode_reduce(&fp2_zero_vector());
             assert_eq!(
-                zero.is_zero(), u32::MAX,
+                zero.is_zero(),
+                u32::MAX,
                 "decode_reduce(0) should give the zero element"
             );
         }
@@ -963,13 +962,13 @@ macro_rules! define_fp2_tests {
             // a - 0 == a.
             let a = <$Fp2>::decode_reduce(&fp2_test_vector(0));
             let z = <$Fp2>::decode_reduce(&fp2_zero_vector());
-            assert_eq!((a - z).equals(&a) , u32::MAX, "a - 0 should equal a");
+            assert_eq!((a - z).equals(&a), u32::MAX, "a - 0 should equal a");
 
             // a - a == 0.
-            assert_eq!((a - a).is_zero() , u32::MAX, "a - a should be zero");
+            assert_eq!((a - a).is_zero(), u32::MAX, "a - a should be zero");
 
             // 0 - 0 == 0.
-            assert_eq!((z - z).is_zero() , u32::MAX, "0 - 0 should be zero");
+            assert_eq!((z - z).is_zero(), u32::MAX, "0 - 0 should be zero");
         }
 
         /// Negation: `-a` component-wise, and double-negation identity.
@@ -1054,7 +1053,8 @@ macro_rules! define_fp2_tests {
                 assert_eq!(zc0, zd0, "iter {i}: square x0 failed");
                 assert_eq!(zc1, zd1, "iter {i}: square x1 failed");
                 assert_eq!(
-                    a.square().equals(&(a * a)), u32::MAX,
+                    a.square().equals(&(a * a)),
+                    u32::MAX,
                     "iter {i}: square() != a*a"
                 );
             }
@@ -1113,17 +1113,26 @@ macro_rules! define_fp2_tests {
                 assert_eq!(zc0, za0, "iter {i}: conjugate changed x0");
                 assert_eq!(zc1, (&zp - &za1) % &zp, "iter {i}: conjugate x1 wrong");
                 assert_eq!(
-                    c.conjugate().equals(&a), u32::MAX,
+                    c.conjugate().equals(&a),
+                    u32::MAX,
                     "iter {i}: double conjugate != a"
                 );
                 let mut d = a;
                 d.set_conjugate();
-                assert_eq!(d.equals(&c), u32::MAX, "iter {i}: set_conjugate != conjugate");
+                assert_eq!(
+                    d.equals(&c),
+                    u32::MAX,
+                    "iter {i}: set_conjugate != conjugate"
+                );
             }
 
             // conjugate(0) == 0.
             let z = <$Fp2>::decode_reduce(&fp2_zero_vector());
-            assert_eq!(z.conjugate().is_zero(), u32::MAX, "conjugate(0) should be zero");
+            assert_eq!(
+                z.conjugate().is_zero(),
+                u32::MAX,
+                "conjugate(0) should be zero"
+            );
         }
 
         /// ZETA constant: `i^2 == -1` and `MINUS_ZETA == -ZETA`.
@@ -1131,15 +1140,18 @@ macro_rules! define_fp2_tests {
         fn fp2_test_zeta_constants() {
             let zeta = <$Fp2>::ZETA;
             assert_eq!(
-                zeta.square().equals(&<$Fp2>::MINUS_ONE), u32::MAX,
+                zeta.square().equals(&<$Fp2>::MINUS_ONE),
+                u32::MAX,
                 "ZETA^2 should be MINUS_ONE"
             );
             assert_eq!(
-                (-zeta).equals(&<$Fp2>::MINUS_ZETA), u32::MAX,
+                (-zeta).equals(&<$Fp2>::MINUS_ZETA),
+                u32::MAX,
                 "-ZETA should be MINUS_ZETA"
             );
             assert_eq!(
-                (zeta + <$Fp2>::MINUS_ZETA).is_zero(), u32::MAX,
+                (zeta + <$Fp2>::MINUS_ZETA).is_zero(),
+                u32::MAX,
                 "ZETA + MINUS_ZETA should be 0"
             );
         }
@@ -1216,19 +1228,23 @@ macro_rules! define_fp2_tests {
 
             // Zero inputs must give the zero element.
             assert_eq!(
-                <$Fp2>::from_i32_pair(0, 0).is_zero(), u32::MAX,
+                <$Fp2>::from_i32_pair(0, 0).is_zero(),
+                u32::MAX,
                 "from_i32_pair(0,0) should be zero"
             );
             assert_eq!(
-                <$Fp2>::from_u32_pair(0, 0).is_zero(), u32::MAX,
+                <$Fp2>::from_u32_pair(0, 0).is_zero(),
+                u32::MAX,
                 "from_u32_pair(0,0) should be zero"
             );
             assert_eq!(
-                <$Fp2>::from_i64_pair(0, 0).is_zero(), u32::MAX,
+                <$Fp2>::from_i64_pair(0, 0).is_zero(),
+                u32::MAX,
                 "from_i64_pair(0,0) should be zero"
             );
             assert_eq!(
-                <$Fp2>::from_u64_pair(0, 0).is_zero(), u32::MAX,
+                <$Fp2>::from_u64_pair(0, 0).is_zero(),
+                u32::MAX,
                 "from_u64_pair(0,0) should be zero"
             );
         }
@@ -1366,7 +1382,7 @@ macro_rules! define_fp2_tests {
 
                 // Canonical root: x0's LSB is 0; when x0 == 0, x1's LSB is also 0.
                 let (zc0, zc1) = fp2_decode_components(&c.encode());
-                
+
                 // nqr * a^2 is not a square for non-zero a; sqrt must fail and return zero.
                 if a.is_zero() == 0 {
                     let (c, r) = (e * nqr).sqrt();
@@ -1403,7 +1419,11 @@ macro_rules! define_fp2_tests {
 
                     let (c, r) = (-f).sqrt();
                     assert_eq!(r, u32::MAX, "iter {i}: sqrt of -real element failed");
-                    assert_eq!((c * c).equals(&(-f)), u32::MAX, "iter {i}: sqrt(-f)^2 != -f");
+                    assert_eq!(
+                        (c * c).equals(&(-f)),
+                        u32::MAX,
+                        "iter {i}: sqrt(-f)^2 != -f"
+                    );
                 }
             }
         }
@@ -1420,12 +1440,10 @@ macro_rules! define_fp2_tests {
 
                 // fourth_root(a^4) must succeed and verify (root)^4 == a^4.
                 let (c, r) = e.fourth_root();
+                assert_eq!(r, u32::MAX, "iter {i}: fourth_root of fourth-power failed");
                 assert_eq!(
-                    r, u32::MAX,
-                    "iter {i}: fourth_root of fourth-power failed"
-                );
-                assert_eq!(
-                    (c * c * c * c).equals(&e), u32::MAX,
+                    (c * c * c * c).equals(&e),
+                    u32::MAX,
                     "iter {i}: fourth_root(a^4)^4 != a^4"
                 );
 
@@ -1456,13 +1474,15 @@ macro_rules! define_fp2_tests {
 
             let (table_idx, table_g, ok) = g.precompute_dlp_tables(e);
             assert_eq!(
-                ok, u32::MAX,
+                ok,
+                u32::MAX,
                 "precompute_dlp_tables should succeed for ZETA"
             );
 
             // The last precomputed power must be g^(2^(e-1)) = g^2 = -1.
             assert_eq!(
-                table_g.last().unwrap().equals(&<$Fp2>::MINUS_ONE), u32::MAX,
+                table_g.last().unwrap().equals(&<$Fp2>::MINUS_ONE),
+                u32::MAX,
                 "last precomputed power should be -1"
             );
 
@@ -1476,7 +1496,8 @@ macro_rules! define_fp2_tests {
             for &(x, expected_v) in powers {
                 let (v_bytes, ok) = g.solve_dlp_2e(&x, e, Some((&table_idx, &table_g)));
                 assert_eq!(
-                    ok, u32::MAX,
+                    ok,
+                    u32::MAX,
                     "solve_dlp_2e should succeed for power {expected_v}"
                 );
                 // v_bytes is ceil(e/8) bytes — zero-pad to 8 bytes before interpreting as u64.
@@ -1502,7 +1523,11 @@ macro_rules! define_fp2_tests {
         #[test]
         fn fp2_test_is_zero_and_equals() {
             // Constant zero and one.
-            assert_eq!(<$Fp2>::ZERO.is_zero(), u32::MAX, "ZERO.is_zero() should be true");
+            assert_eq!(
+                <$Fp2>::ZERO.is_zero(),
+                u32::MAX,
+                "ZERO.is_zero() should be true"
+            );
             assert_eq!(<$Fp2>::ONE.is_zero(), 0, "ONE.is_zero() should be false");
             assert_eq!(
                 <$Fp2>::ZERO.equals(&<$Fp2>::ZERO),
@@ -1520,7 +1545,11 @@ macro_rules! define_fp2_tests {
                 let a = <$Fp2>::decode_reduce(&fp2_test_vector(2 * i));
                 let b = <$Fp2>::decode_reduce(&fp2_test_vector(2 * i + 1));
                 assert_eq!(a.equals(&a), u32::MAX, "iter {i}: a should equal itself");
-                assert_eq!((a + (-a)).is_zero(), u32::MAX, "iter {i}: a + (-a) should be zero");
+                assert_eq!(
+                    (a + (-a)).is_zero(),
+                    u32::MAX,
+                    "iter {i}: a + (-a) should be zero"
+                );
                 assert_eq!(
                     (a + b).equals(&(b + a)),
                     u32::MAX,
@@ -1530,7 +1559,11 @@ macro_rules! define_fp2_tests {
 
             // decode_reduce of zero vector must equal the ZERO constant.
             let z = <$Fp2>::decode_reduce(&fp2_zero_vector());
-            assert_eq!(z.is_zero(), u32::MAX, "decode_reduce(zero vector) should be zero");
+            assert_eq!(
+                z.is_zero(),
+                u32::MAX,
+                "decode_reduce(zero vector) should be zero"
+            );
             assert_eq!(
                 z.equals(&<$Fp2>::ZERO),
                 u32::MAX,

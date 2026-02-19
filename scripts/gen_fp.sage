@@ -41,7 +41,8 @@ def to_little_u64(n, words):
 
 if __name__ == "__main__":
     # p = 65 * 2**376 - 1
-    p = 2**192 * 3**243 * 5**28 * 7**2 - 1
+    # p = 2**192 * 3**243 * 5**28 * 7**2 - 1
+    p = 3**2 * 7 * 2**4084 - 1
     assert p.is_prime()
     assert p % 4 == 3
     words = ceil(p.nbits() / 64)
