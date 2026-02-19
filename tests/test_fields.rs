@@ -1,4 +1,4 @@
-#[cfg(feature = "test_macros")]
+#[cfg(feature = "test-utils")]
 #[cfg(test)]
 mod tests {
     // Random prime with no nice properties for Montgomery friendliness
@@ -237,7 +237,6 @@ mod tests {
         // Fp648Ext: a finite field element GF(p^2) with modulus x^2 + 1.
         // Contents are opaque, all functions are constant-time.
         fp2::define_fp2_from_type!(typename = Fp648Ext, base_field = Fp648,);
-
 
         fp2::define_fp_tests!(Fp648);
         fp2::define_fp2_tests!(Fp648Ext, MODULUS, 6);

@@ -53,7 +53,7 @@ The easiest way to generate macro parameters is to generate the above code snipp
 Tests can be run:
 
 ```
-cargo test --features test_macros
+cargo test --features test-utils
 ```
 
 ### Benchmarks
